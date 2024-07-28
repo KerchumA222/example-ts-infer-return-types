@@ -8,7 +8,10 @@ function getReturnTypeAsString(node: ts.Node, checker: ts.TypeChecker): string {
   return returnTypes.join(" | ");
 }
 
-function getReturnTypeNode(node: ts.Node, checker: ts.TypeChecker): ts.TypeNode | undefined {
+function getReturnTypeNode(
+  node: ts.Node,
+  checker: ts.TypeChecker,
+): ts.TypeNode | undefined {
   const functionLikeType = checker.getTypeAtLocation(node);
   const returnType = functionLikeType.getCallSignatures()[0].getReturnType();
 
@@ -71,7 +74,9 @@ function getReturnTypesForAllFunctionLikes(fileName: string) {
 //getReturnTypesForAllFunctionLikes('./sample.ts');
 //console.log("All exported members:");
 //getReturnTypesForExportedMembers('./sample.ts');
-function transformationFactory(checker: ts.TypeChecker): ts.TransformerFactory<ts.Node> {
+function transformationFactory(
+  checker: ts.TypeChecker,
+): ts.TransformerFactory<ts.Node> {
   return function transformReturnTypeToExplicit(
     context: ts.TransformationContext,
   ): ts.Transformer<ts.Node> {
@@ -80,7 +85,8 @@ function transformationFactory(checker: ts.TypeChecker): ts.TransformerFactory<t
         if (ts.isFunctionDeclaration(node)) {
           // get the inferred type from the typechecker
           const returnType = getReturnTypeNode(node, checker);
-          if (!returnType) { // type could not be inferred?
+          if (!returnType) {
+            // type could not be inferred?
             return node;
           }
 
@@ -107,14 +113,21 @@ function transformationFactory(checker: ts.TypeChecker): ts.TransformerFactory<t
 const fileName = "sample.ts";
 const program = ts.createProgram([fileName], ts.getDefaultCompilerOptions());
 const typeChecker = program.getTypeChecker();
-const sourceFile = program.getSourceFile(fileName);
 
-if (!sourceFile) {
-    throw "Can't open source file";
-}
-// Apply the transformer
-const result = ts.transform(sourceFile, [transformationFactory(typeChecker)]);
-const transformedSourceFile = result.transformed[0];
+program
+  .getSourceFiles()
+  .filter((sourceFile) => !sourceFile.fileName.includes("node_modules"))
+  .forEach((sourceFile) => {
+    // Apply the transformer
+    const result = ts.transform(sourceFile, [
+      transformationFactory(typeChecker),
+    ]);
+    const transformedSourceFile = result.transformed[0];
 
-// Print the transformed code
-console.log(ts.createPrinter().printNode(ts.EmitHint.Unspecified, transformedSourceFile, sourceFile));
+    // Print the transformed code
+    console.log(
+      ts
+        .createPrinter()
+        .printNode(ts.EmitHint.Unspecified, transformedSourceFile, sourceFile),
+    );
+  });
