@@ -1,13 +1,5 @@
 import * as ts from "typescript";
 
-function getReturnTypeAsString(node: ts.Node, checker: ts.TypeChecker): string {
-  const type = checker.getTypeAtLocation(node);
-  const returnTypes = type.getCallSignatures().map((signature) => {
-    return checker.typeToString(signature.getReturnType());
-  });
-  return returnTypes.join(" | ");
-}
-
 function getReturnTypeNode(
   node: ts.Node,
   checker: ts.TypeChecker,
@@ -18,83 +10,71 @@ function getReturnTypeNode(
   return checker.typeToTypeNode(returnType, node, undefined);
 }
 
-/*
-function getReturnTypesForExportedMembers(fileName: string) {
-    const program = ts.createProgram([fileName], ts.getDefaultCompilerOptions());
-    const checker = program.getTypeChecker();
-    const sourceFile = program.getSourceFile(fileName);
-    
-    if (sourceFile) {
-        const sourceFileSymbol = checker.getSymbolAtLocation(sourceFile)!;
-
-        checker.getExportsOfModule(sourceFileSymbol).forEach((exportSymbol) => {
-            const exportType: ts.Type = checker.getTypeOfSymbolAtLocation(
-                exportSymbol,
-                exportSymbol.declarations![0],
-            );
-            const callSignatures = exportType.getCallSignatures(); //only function and arrow function have call signatures so this ignores variables, classes, and objects
-            callSignatures.forEach((signature) => {
-                console.log(exportSymbol.getName(), checker.typeToString(signature.getReturnType())); // string
-            });
-        });
-    }
-}
-
-function getReturnTypesForAllFunctionLikes(fileName: string) {
-    const program = ts.createProgram([fileName], ts.getDefaultCompilerOptions());
-    const checker = program.getTypeChecker();
-    const sourceFile = program.getSourceFile(fileName);
-    
-    if (sourceFile) {
-        const printer = ts.createPrinter();
-        sourceFile.forEachChild((node) => {         
-            // function
-            if (ts.isFunctionLike(node)) {
-                node.forEachChild(child => console.log(child.getText(), '/n'));
-                //console.log(printer.printNode(ts.EmitHint.Unspecified, node, sourceFile));
-
-                // console.log("Function name:", node.name?.getText(), "Return type:", getReturnTypeAsString(node, checker));
-            }
-            // arrow function
-            if (ts.isVariableStatement(node)) {
-                node.declarationList.declarations.forEach((declaration: ts.VariableDeclaration) => {
-                    if (ts.isVariableDeclaration(declaration)) {
-                        const returnType = getReturnTypeAsString(declaration, checker);
-                        if (returnType) {
-                            console.log("Variable name:", declaration.name.getText(), "Type:", returnType);
-                        }
-                    }
-                });
-            }
-        });
-    }
-}*/
-
-//console.log("All function likes:");
-//getReturnTypesForAllFunctionLikes('./sample.ts');
-//console.log("All exported members:");
-//getReturnTypesForExportedMembers('./sample.ts');
 function transformationFactory(
   checker: ts.TypeChecker,
+  shouldProcess: (node: ts.Node) => boolean = () => false,
 ): ts.TransformerFactory<ts.Node> {
   return function transformReturnTypeToExplicit(
     context: ts.TransformationContext,
   ): ts.Transformer<ts.Node> {
     return (sourceFile: ts.Node) => {
       function visitor(node: ts.Node): ts.Node {
-        if (ts.isFunctionDeclaration(node)) {
-          // get the inferred type from the typechecker
-          const returnType = getReturnTypeNode(node, checker);
-          if (!returnType) {
-            // type could not be inferred?
-            return node;
-          }
+        if (!shouldProcess(node)) {
+          return ts.visitEachChild(node, visitor, context);
+        }
 
+        // get the inferred type from the typechecker
+        const returnType = getReturnTypeNode(node, checker);
+        if (!returnType) {
+          // type could not be inferred?
+          return ts.visitEachChild(node, visitor, context);;
+        }
+
+        if (ts.isFunctionDeclaration(node)) {
           return ts.factory.updateFunctionDeclaration(
             node,
             node.modifiers,
             node.asteriskToken,
             node.name,
+            node.typeParameters,
+            node.parameters,
+            returnType,
+            node.body,
+          );
+        }
+
+        if (ts.isFunctionExpression(node)) {
+          return ts.factory.updateFunctionExpression(
+            node,
+            node.modifiers,
+            node.asteriskToken,
+            node.name,
+            node.typeParameters,
+            node.parameters,
+            returnType,
+            node.body,
+          );
+        }
+
+        if (ts.isArrowFunction(node)) {
+          return ts.factory.updateArrowFunction(
+            node,
+            node.modifiers,
+            node.typeParameters,
+            node.parameters,
+            returnType,
+            node.equalsGreaterThanToken,
+            node.body,
+          );
+        }
+
+        if (ts.isMethodDeclaration(node)) {
+          return ts.factory.updateMethodDeclaration(
+            node,
+            node.modifiers,
+            node.asteriskToken,
+            node.name,
+            node.questionToken,
             node.typeParameters,
             node.parameters,
             returnType,
@@ -110,17 +90,53 @@ function transformationFactory(
   };
 }
 
-const fileName = "sample.ts";
-const program = ts.createProgram([fileName], ts.getDefaultCompilerOptions());
+const fileName = "sample.ts"; //TODO: pass in as argument
+const program = ts.createProgram([fileName], ts.getDefaultCompilerOptions()); // or just build from tsconfig.json
 const typeChecker = program.getTypeChecker();
+const nodeIsExported = (node: ts.Declaration) => {
+  return !!(ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export);
+}
 
+/**
+ * This function determines if a node is a module boundary
+ * A module boundary is a callable that is exported from a module or is a public method of a class
+ */
+const isModuleBoundary = (node: ts.Node): boolean => {
+  // directly exported function
+  if (ts.isFunctionDeclaration(node)) {
+    return nodeIsExported(node);
+  }
+  // arrow function or function expression as an exported variable
+  if (ts.isFunctionExpression(node) || ts.isArrowFunction(node)) {
+    if (ts.isVariableDeclaration(node.parent)) {
+      return nodeIsExported(node.parent);
+    }
+  }
+  // public method (including static methods) of a class
+  if (ts.isMethodDeclaration(node)) {
+    return !!(ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Public);
+  }
+
+  // something else
+  return false;
+};
+
+// apply to all functions, arrow functions, function expressions, and methods
+const isFunctionLike = (node: ts.Node): boolean => {
+  return ts.isFunctionDeclaration(node)
+    || ts.isFunctionExpression(node)
+    || ts.isArrowFunction(node)
+    || ts.isMethodDeclaration(node);
+};
+
+// Main entry point
 program
   .getSourceFiles()
   .filter((sourceFile) => !sourceFile.fileName.includes("node_modules"))
   .forEach((sourceFile) => {
     // Apply the transformer
     const result = ts.transform(sourceFile, [
-      transformationFactory(typeChecker),
+      transformationFactory(typeChecker, isModuleBoundary),
     ]);
     const transformedSourceFile = result.transformed[0];
 

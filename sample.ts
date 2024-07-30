@@ -11,6 +11,14 @@ const doNotFindThisFunction = function(input: string) {
     return input.toLocaleLowerCase();
 }
 
+export const findThisArrowFunction = (input: string) => {
+    return input.toLocaleLowerCase();
+}
+
+export const findThisFunctionExpression = function(input: string) {
+    return input.toLocaleLowerCase();
+}
+
 const doNotFindThisVariable = 'doNotFindThisVariable';
 
 export function Example2(input: string) {
@@ -43,6 +51,14 @@ export function ExampleExampleType(input: string): ExampleType {
 class Something {
     public static Example5(input: string) {
         return input.toLocaleLowerCase();
+    }
+
+    public Example6(input: string) {
+        return input.length;
+    }
+
+    private NotPublic(input: string) {
+        return !input.length;
     }
 }
 
