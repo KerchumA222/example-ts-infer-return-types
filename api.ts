@@ -12,14 +12,14 @@ function getReturnTypeNode(
 
 function transformationFactory(
   checker: ts.TypeChecker,
-  shouldProcess: (node: ts.Node) => boolean = () => false,
+  shouldProcessNode: (node: ts.Node) => boolean = () => false,
 ): ts.TransformerFactory<ts.Node> {
   return function transformReturnTypeToExplicit(
     context: ts.TransformationContext,
   ): ts.Transformer<ts.Node> {
     return (sourceFile: ts.Node) => {
       function visitor(node: ts.Node): ts.Node {
-        if (!shouldProcess(node)) {
+        if (!shouldProcessNode(node)) {
           return ts.visitEachChild(node, visitor, context);
         }
 
@@ -129,6 +129,11 @@ const isFunctionLike = (node: ts.Node): boolean => {
     || ts.isMethodDeclaration(node);
 };
 
+// pass in isModuleBoundary to only transform module boundaries
+// pass in isFunctionLike to transform all functions, arrow functions, function expressions, and methods
+// this should be done via configuration
+const shouldProcessNode = isModuleBoundary;
+
 // Main entry point
 program
   .getSourceFiles()
@@ -136,7 +141,7 @@ program
   .forEach((sourceFile) => {
     // Apply the transformer
     const result = ts.transform(sourceFile, [
-      transformationFactory(typeChecker, isModuleBoundary),
+      transformationFactory(typeChecker, shouldProcessNode),
     ]);
     const transformedSourceFile = result.transformed[0];
 
