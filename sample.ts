@@ -43,8 +43,9 @@ export function ExampleUnion(input: string) {
 }
 
 type ExampleType = {something: string};
-export function ExampleExampleType(input: string): ExampleType {
-    return {something: input};
+export function ExampleExampleType(input: string) {
+    const thing: ExampleType = {something: input};
+    return thing;
 }
 
 
