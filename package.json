@@ -4,12 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "ts-node api.ts"
+    "test": "bun app.ts"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "ts-node": "^10.9.2",
+    "ts-morph": "^23.0.0",
     "typescript": "^5.5.4"
   }
 }
