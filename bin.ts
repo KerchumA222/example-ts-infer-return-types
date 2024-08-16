@@ -11,7 +11,7 @@ const options = yargs(hideBin(process.argv))
   .option("c", {
     alias: "tsconfig",
     describe:
-      "Relative path to the tsconfig.json. Defaults to looking in the current path.",
+      "Relative path to the tsconfig.json",
     type: "string",
     demandOption: false,
   })
@@ -24,11 +24,18 @@ const options = yargs(hideBin(process.argv))
   .option("a", {
     alias: "allFunctions",
     describe:
-      "Set this flag to attempt to add return types to all function-likes, not just module boundaries.",
+      "Set this flag to attempt to add return types to all function-likes, not just module boundaries",
     type: "boolean",
     demandOption: false,
   })
-  .default("a", false).argv as any;
+  .default("a", false)
+  .check((argv, options) => {
+    if (options.files || options.tsconfig) {
+        return true;
+    } 
+    throw new Error("No files to process!")
+  })
+  .argv as any;
 
 const projectOptions: ProjectOptions = {};
 if (options.tsconfig) {
@@ -50,7 +57,6 @@ const typeChecker = project.getTypeChecker();
 
 // pass in isModuleBoundary to only transform module boundaries
 // pass in isFunctionLike to transform all functions, arrow functions, function expressions, and methods
-// this should be done via configuration
 const shouldProcessNode = options.allFunctions
   ? isFunctionLike
   : isModuleBoundary;
