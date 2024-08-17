@@ -30,9 +30,9 @@ const options = yargs(hideBin(process.argv))
   })
   .default("a", false)
   .check((argv, options) => {
-    if (options.files || options.tsconfig) {
+    if (argv.files || argv.tsconfig) {
         return true;
-    } 
+    }
     throw new Error("No files to process!")
   })
   .argv as any;
