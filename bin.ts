@@ -4,7 +4,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { inferReturnTypeTransformerFactory } from "./transformer";
 import { isFunctionLike, isModuleBoundary } from "./utils";
-import { Project, ProjectOptions, ts } from "ts-morph";
+import { Project, ProjectOptions, SourceFile, ts } from "ts-morph";
 
 const options = yargs(hideBin(process.argv))
   .usage("Usage: --tsconfig|-c <path to tsconfig> --files|-f <glob>")
@@ -61,12 +61,14 @@ const shouldProcessNode = options.allFunctions
   ? isFunctionLike
   : isModuleBoundary;
 
+const filesToSave: Set<SourceFile> = new Set();
 project
   .getSourceFiles()
-  .forEach((sourceFile) =>
+  .forEach((sourceFile) => {
+    sourceFile.onModified((sender: SourceFile) => filesToSave.add(sender));
     sourceFile.transform(
-      inferReturnTypeTransformerFactory(typeChecker, shouldProcessNode),
-    ),
-  );
+        inferReturnTypeTransformerFactory(typeChecker, shouldProcessNode),
+    );
+  });
 
-await project.save();
+await filesToSave.forEach(sourceFile => sourceFile.save());
