@@ -10,7 +10,7 @@ export function getReturnTypeNode(
   return checker.typeToTypeNode(returnType, node, undefined);
 }
 
-export const nodeIsExported = (node: ts.Declaration) => {
+export const nodeIsExported = (node: ts.Declaration): boolean => {
   return !!(ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export);
 };
 

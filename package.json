@@ -9,6 +9,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@types/bun": "^1.1.6",
+    "@types/diff": "^5.2.1",
+    "diff": "^5.2.0",
     "ts-morph": "^23.0.0",
     "typescript": "^5.5.4",
     "yargs": "^17.7.2"
