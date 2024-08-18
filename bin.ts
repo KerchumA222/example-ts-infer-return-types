@@ -76,7 +76,7 @@ if (options.createPatch) {
 }
 
 project
-  .getSourceFiles()
+  .getSourceFiles(options.files ?? "**/*.ts")
   .forEach((sourceFile) => {
     sourceFile.applyTextChanges
     const prev = sourceFile.print();
