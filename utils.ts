@@ -1,4 +1,4 @@
-import { ts } from "ts-morph";
+import { ts, TypeFlags } from "ts-morph";
 
 export function getReturnTypeNode(
   node: ts.Node,
@@ -6,6 +6,9 @@ export function getReturnTypeNode(
 ): ts.TypeNode | undefined {
   const functionLikeType = checker.getTypeAtLocation(node);
   const returnType = functionLikeType.getCallSignatures()[0].getReturnType();
+  if (returnType.flags & TypeFlags.Any) {
+    return;
+  }
 
   return checker.typeToTypeNode(returnType, node, undefined);
 }

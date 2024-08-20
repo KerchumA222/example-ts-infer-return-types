@@ -16,7 +16,6 @@ export const inferReturnTypeTransformerFactory =
         typeChecker.compilerObject,
       );
       if (!returnType) {
-        // type could not be inferred?
         return node;
       }
       let initializer: ts.Expression | undefined = undefined;
@@ -56,7 +55,6 @@ export const inferReturnTypeTransformerFactory =
     // get the inferred type from the typechecker
     const returnType = getReturnTypeNode(node, typeChecker.compilerObject);
     if (!returnType) {
-      // type could not be inferred?
       return node;
     }
 

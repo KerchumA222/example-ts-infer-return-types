@@ -65,3 +65,7 @@ class Something {
 export default {
   "I don't care about this object": 0,
 };
+
+export function ThisReturnsAny(something: any) {
+  return something;
+}
