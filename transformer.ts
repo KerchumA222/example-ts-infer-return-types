@@ -1,12 +1,14 @@
-import { ts, TypeChecker } from 'ts-morph';
-import { getReturnTypeNode } from './utils';
+import { TransformTraversalControl, ts, TypeChecker } from "ts-morph";
+import { getReturnTypeNode } from "./utils";
 
-export const inferReturnTypeTransformerFactory = (typeChecker: TypeChecker, shouldProcessNode) => (traversal) => {
+export const inferReturnTypeTransformerFactory =
+  (typeChecker: TypeChecker, shouldProcessNode: (node: ts.Node) => boolean) =>
+  (traversal: TransformTraversalControl) => {
     const node = traversal.visitChildren();
     if (!shouldProcessNode(node)) {
       return node;
     }
-  
+
     if (ts.isVariableDeclaration(node) && node.initializer) {
       // get the inferred type from the typechecker
       const returnType = getReturnTypeNode(
@@ -50,14 +52,14 @@ export const inferReturnTypeTransformerFactory = (typeChecker: TypeChecker, shou
         );
       }
     }
-  
+
     // get the inferred type from the typechecker
     const returnType = getReturnTypeNode(node, typeChecker.compilerObject);
     if (!returnType) {
       // type could not be inferred?
       return node;
     }
-  
+
     if (ts.isFunctionDeclaration(node)) {
       return traversal.factory.updateFunctionDeclaration(
         node,
@@ -70,7 +72,7 @@ export const inferReturnTypeTransformerFactory = (typeChecker: TypeChecker, shou
         node.body,
       );
     }
-  
+
     if (ts.isFunctionExpression(node)) {
       return traversal.factory.updateFunctionExpression(
         node,
@@ -83,7 +85,7 @@ export const inferReturnTypeTransformerFactory = (typeChecker: TypeChecker, shou
         node.body,
       );
     }
-  
+
     if (ts.isArrowFunction(node)) {
       return traversal.factory.updateArrowFunction(
         node,
@@ -95,7 +97,7 @@ export const inferReturnTypeTransformerFactory = (typeChecker: TypeChecker, shou
         node.body,
       );
     }
-  
+
     if (ts.isMethodDeclaration(node)) {
       return traversal.factory.updateMethodDeclaration(
         node,

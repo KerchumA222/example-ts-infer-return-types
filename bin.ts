@@ -16,7 +16,7 @@ const options = yargs(hideBin(process.argv))
       "Relative path to the tsconfig.json. Defaults to './tsconfig.json'",
     type: "string",
     requiresArg: true,
-    default: "./tsconfig.json"
+    default: "./tsconfig.json",
   })
   .option("f", {
     alias: "files",
@@ -33,8 +33,7 @@ const options = yargs(hideBin(process.argv))
   })
   .option("p", {
     alias: "createPatch",
-    describe:
-      `Set this flag to create a patch instead of modifying files directly. This is especially useful to combine with wiggle: 'wiggle -p -r transforms.patch' It may also help to specify the tsconfig.json with the '-c  tsconfig.json' flag so that the transformed TS uses the same formatting rules that your project uses.`,
+    describe: `Set this flag to create a patch instead of modifying files directly. This is especially useful to combine with wiggle: 'wiggle -p -r transforms.patch' It may also help to specify the tsconfig.json with the '-c  tsconfig.json' flag so that the transformed TS uses the same formatting rules that your project uses.`,
     type: "boolean",
     default: false,
   })
@@ -42,9 +41,8 @@ const options = yargs(hideBin(process.argv))
     if (argv.files || argv.tsconfig) {
       return true;
     }
-    throw new Error("No files to process!")
-  })
-  .argv as any;
+    throw new Error("No files to process!");
+  }).argv as any;
 
 const projectOptions: ProjectOptions = {};
 if (options.tsconfig) {
@@ -72,35 +70,33 @@ const shouldProcessNode = options.allFunctions
 
 let patchFile: FileSink | null = null;
 if (options.createPatch) {
-    patchFile = Bun.file("./transforms.patch").writer();
+  patchFile = Bun.file("./transforms.patch").writer();
 }
 
-project
-  .getSourceFiles(options.files ?? "**/*.ts")
-  .forEach((sourceFile) => {
-    sourceFile.applyTextChanges
-    const prev = sourceFile.print();
-    sourceFile.onModified(async (sender: SourceFile) => {
-      if (patchFile) {
-        const filePath = sender.getFilePath().toString();
-        // diff prev to new
-        const fileDiff = createPatch(
-          filePath,
-          prev,
-          sender.print(),
-          "original",
-          "transformed",
-          {
-            ignoreWhitespace: true
-          }
-        );
-      
-        patchFile.write(fileDiff);
-      } else {
-        await sourceFile.save();
-      }
-    });
-    sourceFile.transform(
-        inferReturnTypeTransformerFactory(typeChecker, shouldProcessNode),
-    );
+project.getSourceFiles(options.files ?? "**/*.ts").forEach((sourceFile) => {
+  sourceFile.applyTextChanges;
+  const prev = sourceFile.print();
+  sourceFile.onModified(async (sender: SourceFile) => {
+    if (patchFile) {
+      const filePath = sender.getFilePath().toString();
+      // diff prev to new
+      const fileDiff = createPatch(
+        filePath,
+        prev,
+        sender.print(),
+        "original",
+        "transformed",
+        {
+          ignoreWhitespace: true,
+        },
+      );
+
+      patchFile.write(fileDiff);
+    } else {
+      await sourceFile.save();
+    }
   });
+  sourceFile.transform(
+    inferReturnTypeTransformerFactory(typeChecker, shouldProcessNode),
+  );
+});

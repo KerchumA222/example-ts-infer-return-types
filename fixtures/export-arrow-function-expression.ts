@@ -1,3 +1,3 @@
 export const findThisArrowFunction = (input: string) => {
-    return input.toLocaleLowerCase();
-}
+  return input.toLocaleLowerCase();
+};
