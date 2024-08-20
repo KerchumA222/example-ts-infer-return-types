@@ -7,6 +7,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { inferReturnTypeTransformerFactory } from "./transformer";
 import { isFunctionLike, isModuleBoundary } from "./utils";
+import { unlinkSync } from "node:fs";
 
 const options = yargs(hideBin(process.argv))
   .usage("Usage: [options]")
@@ -70,7 +71,10 @@ const shouldProcessNode = options.allFunctions
 
 let patchFile: FileSink | null = null;
 if (options.createPatch) {
-  patchFile = Bun.file("./transforms.patch").writer();
+  const path = "./transforms.patch";
+  unlinkSync(path);
+  const fileHandle = Bun.file(path);
+  patchFile = fileHandle.writer();
 }
 
 project.getSourceFiles(options.files ?? "**/*.ts").forEach((sourceFile) => {
