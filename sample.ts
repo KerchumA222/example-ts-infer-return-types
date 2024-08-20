@@ -57,6 +57,10 @@ class Something {
     return input.length;
   }
 
+  public NoChange(): any {
+    return true;
+  }
+
   private NotPublic(input: string) {
     return !input.length;
   }
@@ -68,4 +72,14 @@ export default {
 
 export function ThisReturnsAny(something: any) {
   return something;
+}
+
+export function NoChange(): any {
+  return true;
+}
+export const NoChange2 = (): any => {
+  return true;
+}
+export const NoChange3 = function(): any {
+  return true;
 }

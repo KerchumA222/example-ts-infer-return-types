@@ -1,6 +1,8 @@
 import { TransformTraversalControl, ts, TypeChecker } from "ts-morph";
 import { getReturnTypeNode } from "./utils";
 
+const nodeHasExistingReturnType = (node: ts.Node): boolean => ts.isFunctionLike(node) && !!node.type;
+
 export const inferReturnTypeTransformerFactory =
   (typeChecker: TypeChecker, shouldProcessNode: (node: ts.Node) => boolean) =>
   (traversal: TransformTraversalControl) => {
@@ -10,6 +12,10 @@ export const inferReturnTypeTransformerFactory =
     }
 
     if (ts.isVariableDeclaration(node) && node.initializer) {
+      if (nodeHasExistingReturnType(node.initializer)) {
+        return node;
+      }
+
       // get the inferred type from the typechecker
       const returnType = getReturnTypeNode(
         node.initializer,
@@ -50,6 +56,10 @@ export const inferReturnTypeTransformerFactory =
           initializer,
         );
       }
+    }
+
+    if (nodeHasExistingReturnType(node)) {
+      return node;
     }
 
     // get the inferred type from the typechecker
