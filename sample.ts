@@ -53,6 +53,12 @@ class Something {
     return input.toLocaleLowerCase();
   }
 
+  static ExampleImplicitPublicStatic(input: boolean) {
+    return input.toString();
+  }
+
+  private static SkipThisOne() {}
+
   public Example6(input: string) {
     return input.length;
   }

@@ -38,7 +38,8 @@ export const isModuleBoundary = (node: ts.Node): boolean => {
   }
   // public method (including static methods) of a class
   if (ts.isMethodDeclaration(node)) {
-    return !!(ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Public);
+    const modifierFlags = ts.getCombinedModifierFlags(node)
+    return !(modifierFlags & (ts.ModifierFlags.Private | ts.ModifierFlags.Protected));
   }
 
   // something else
